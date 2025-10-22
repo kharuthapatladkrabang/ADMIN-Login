@@ -2,99 +2,160 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ระบบล็อกอิน Admin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Login</title>
+<link rel="stylesheet" href="style.css">
 <style>
-/* ใส่ CSS เดิมได้เลย */
+:root{--bg:#f5f7fb;--card:#fff;--accent:#1f6feb}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,var(--bg),#eef3ff);display:flex;justify-content:center;align-items:center;height:100vh}
+.login-container{width:100%;max-width:500px;padding:20px}
+.login-card{background:var(--card);padding:30px;border-radius:12px;box-shadow:0 8px 30px rgba(20,30,60,.08)}
+h1{margin:0 0 10px;font-size:22px;text-align:center;color:#1f1f1f}
+p.lead{margin:0 0 20px;text-align:center;color:#586173}
+input[type=text],input[type=password]{width:100%;padding:10px;border:1px solid #dbe4f5;border-radius:8px;margin-bottom:15px}
+button{padding:10px 15px;border:none;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;width:100%;font-size:16px}
+button.loading{opacity:.7;pointer-events:none}
+.msg{padding:10px;border-radius:8px;font-size:14px;margin-top:10px;text-align:center}
+.msg.error{background:#fff1f0;color:#b42318;border:1px solid #ffd7d4}
+.msg.ok{background:#f0fff6;color:#066b3d;border:1px solid #bff0d6}
+.tabs{display:flex;gap:5px;margin-bottom:15px}
+.tabs button{flex:1;background:#fff;border:1px solid #e6e9f2;color:#333;cursor:pointer}
+.tabs button.active{background:var(--accent);color:#fff;border:none}
 </style>
 </head>
 <body>
-<div id="card">
-  <h1>ระบบล็อกอินสำหรับแอดมิน</h1>
 
-  <form id="form-check">
-    <input id="check-student" type="text" placeholder="รหัสนักศึกษา" required>
-    <button type="submit">ตรวจสอบ</button>
-  </form>
+<div class="login-container">
+    <div class="login-card">
+        <h1>ระบบล็อกอินสำหรับ Admin</h1>
+        <p class="lead">กรอกรหัสนักศึกษาเพื่อลงทะเบียนหรือเข้าสู่ระบบ</p>
 
-  <div id="content" style="display:none;">
-    <div id="register-login-tabs">
-      <button id="tab-register">ลงทะเบียน</button>
-      <button id="tab-login">ล็อกอิน</button>
+        <!-- ตรวจสอบรหัสนักศึกษา -->
+        <form id="form-check">
+            <input id="check-student" type="text" placeholder="รหัสนักศึกษา" required>
+            <button type="submit" id="btn-check">ตรวจสอบสิทธิ์</button>
+        </form>
+
+        <!-- เนื้อหา Register / Login -->
+        <div id="content" style="display:none">
+            <div class="tabs">
+                <button id="tab-register" class="active">ลงทะเบียน</button>
+                <button id="tab-login">ล็อกอิน</button>
+            </div>
+
+            <!-- Register Form -->
+            <form id="form-register">
+                <input id="reg-student" type="text" readonly>
+                <input id="reg-pass" type="password" placeholder="รหัสผ่าน" required>
+                <button type="submit" id="btn-register">ลงทะเบียน</button>
+            </form>
+
+            <!-- Login Form -->
+            <form id="form-login" style="display:none;">
+                <input id="log-student" type="text" readonly>
+                <input id="log-pass" type="password" placeholder="รหัสผ่าน" required>
+                <button type="submit" id="btn-login">เข้าสู่ระบบ</button>
+            </form>
+
+            <!-- ข้อความแจ้งผล -->
+            <div id="message"></div>
+        </div>
     </div>
-
-    <form id="form-register">
-      <input id="reg-student" type="text" readonly>
-      <input id="reg-pass" type="password" placeholder="ตั้งรหัสผ่าน" required>
-      <button type="submit">ลงทะเบียน</button>
-    </form>
-
-    <form id="form-login" style="display:none;">
-      <input id="log-student" type="text" readonly>
-      <input id="log-pass" type="password" placeholder="รหัสผ่าน" required>
-      <button type="submit">เข้าสู่ระบบ</button>
-    </form>
-
-    <div id="message"></div>
-  </div>
-
-  <div id="welcome" style="display:none;"></div>
 </div>
 
 <script>
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxEne0KIsTKhm_so5VObF5f882yAhx_CPIXKDgj8HEA9eXjpwUnUoJjjGcQk3xu4XiH/exec';
+const WEB_APP_URL = 'YOUR_WEB_APP_URL_HERE'; // เปลี่ยนเป็นของคุณ
 
-function showMessage(msg,type='error'){
-  document.getElementById('message').innerHTML=`<div class="${type}">${msg}</div>`;
+function showMessage(text,type='error'){
+    document.getElementById('message').innerHTML = `<div class="msg ${type==='ok'?'ok':'error'}">${text}</div>`;
 }
-function clearMessage(){document.getElementById('message').innerHTML='';}
+function setLoading(btn,state=true){
+    if(state){btn.classList.add('loading');btn.disabled=true;}
+    else{btn.classList.remove('loading');btn.disabled=false;}
+}
 
-// ตรวจสอบรหัส
-document.getElementById('form-check').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const sid = document.getElementById('check-student').value.trim();
-  if(!sid) return alert('กรุณากรอกรหัส');
-  try{
-    const res = await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify({action:'checkRegister',studentId:sid})});
-    const data = await res.json();
-    document.getElementById('form-check').style.display='none';
-    document.getElementById('content').style.display='';
-    document.getElementById('reg-student').value = sid;
-    document.getElementById('log-student').value = sid;
-    if(data.registered) document.getElementById('tab-login').click();
-    else document.getElementById('tab-register').click();
-  }catch(err){alert('เกิดข้อผิดพลาด: '+err);}
+// ตรวจสอบรหัสนักศึกษา
+document.getElementById('form-check').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const sid = document.getElementById('check-student').value.trim();
+    const btn = document.getElementById('btn-check');
+    if(!sid){alert('กรุณากรอกรหัสนักศึกษา');return;}
+    setLoading(btn,true);
+    try{
+        const res = await fetch(WEB_APP_URL,{
+            method:'POST',
+            body: JSON.stringify({action:'checkRegister',studentId:sid}),
+            headers:{'Content-Type':'application/json'}
+        });
+        const data = await res.json();
+        document.getElementById('form-check').style.display='none';
+        document.getElementById('content').style.display='';
+        document.getElementById('reg-student').value=sid;
+        document.getElementById('log-student').value=sid;
+        if(data.registered){document.getElementById('tab-login').click();}
+        else{document.getElementById('tab-register').click();}
+    }catch(err){alert('เกิดข้อผิดพลาด: '+err);}
+    finally{setLoading(btn,false);}
 });
 
-// ลงทะเบียน
-document.getElementById('form-register').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const sid = document.getElementById('reg-student').value;
-  const pass = document.getElementById('reg-pass').value;
-  try{
-    const res = await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify({action:'register',studentId:sid,pass:pass})});
-    const data = await res.json();
-    showMessage(data.message,data.success?'ok':'error');
-    if(data.success) document.getElementById('tab-login').click();
-  }catch(err){showMessage('เกิดข้อผิดพลาด: '+err);}
+// Tabs
+document.getElementById('tab-register').addEventListener('click',()=>{
+    document.getElementById('form-register').style.display='';
+    document.getElementById('form-login').style.display='none';
+    document.getElementById('tab-register').classList.add('active');
+    document.getElementById('tab-login').classList.remove('active');
+    showMessage('');
+});
+document.getElementById('tab-login').addEventListener('click',()=>{
+    document.getElementById('form-register').style.display='none';
+    document.getElementById('form-login').style.display='';
+    document.getElementById('tab-login').classList.add('active');
+    document.getElementById('tab-register').classList.remove('active');
+    showMessage('');
 });
 
-// ล็อกอิน
-document.getElementById('form-login').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const sid = document.getElementById('log-student').value;
-  const pass = document.getElementById('log-pass').value;
-  try{
-    const res = await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify({action:'login',studentId:sid,pass:pass})});
-    const data = await res.json();
-    if(data.success && data.isAdmin){
-      document.getElementById('content').style.display='none';
-      const w = document.getElementById('welcome');
-      w.style.display='';
-      w.innerHTML=`สวัสดี ${data.adminName} | จำนวนครั้งเข้าใช้งาน: ${data.adminCount} <br>
-                   <a href="${data.link}" target="_blank">ไปหน้า Admin</a>`;
-    }else showMessage(data.message);
-  }catch(err){showMessage('เกิดข้อผิดพลาด: '+err);}
+// Register
+document.getElementById('form-register').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const sid = document.getElementById('reg-student').value;
+    const pass = document.getElementById('reg-pass').value;
+    const btn = document.getElementById('btn-register');
+    setLoading(btn,true);
+    try{
+        const res = await fetch(WEB_APP_URL,{
+            method:'POST',
+            body: JSON.stringify({action:'register',studentId:sid,pass:pass}),
+            headers:{'Content-Type':'application/json'}
+        });
+        const data = await res.json();
+        showMessage(data.message,data.success?'ok':'error');
+        if(data.success) setTimeout(()=>document.getElementById('tab-login').click(),1000);
+    }catch(err){showMessage('เกิดข้อผิดพลาด: '+err);}
+    finally{setLoading(btn,false);}
+});
+
+// Login
+document.getElementById('form-login').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const sid = document.getElementById('log-student').value;
+    const pass = document.getElementById('log-pass').value;
+    const btn = document.getElementById('btn-login');
+    setLoading(btn,true);
+    try{
+        const res = await fetch(WEB_APP_URL,{
+            method:'POST',
+            body: JSON.stringify({action:'login',studentId:sid,pass:pass}),
+            headers:{'Content-Type':'application/json'}
+        });
+        const data = await res.json();
+        if(data.success && data.isAdmin){
+            showMessage('เข้าสู่ระบบสำเร็จ กำลังพาไปยังลิงก์...','ok');
+            setTimeout(()=>window.location.href=data.link,800);
+        }else{
+            showMessage(data.message);
+        }
+    }catch(err){showMessage('เกิดข้อผิดพลาด: '+err);}
+    finally{setLoading(btn,false);}
 });
 </script>
 </body>
