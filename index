@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ระบบล็อกอิน Admin</title>
+<style>
+/* ใส่ CSS เดิมได้เลย */
+</style>
+</head>
+<body>
+<div id="card">
+  <h1>ระบบล็อกอินสำหรับแอดมิน</h1>
+
+  <form id="form-check">
+    <input id="check-student" type="text" placeholder="รหัสนักศึกษา" required>
+    <button type="submit">ตรวจสอบ</button>
+  </form>
+
+  <div id="content" style="display:none;">
+    <div id="register-login-tabs">
+      <button id="tab-register">ลงทะเบียน</button>
+      <button id="tab-login">ล็อกอิน</button>
+    </div>
+
+    <form id="form-register">
+      <input id="reg-student" type="text" readonly>
+      <input id="reg-pass" type="password" placeholder="ตั้งรหัสผ่าน" required>
+      <button type="submit">ลงทะเบียน</button>
+    </form>
+
+    <form id="form-login" style="display:none;">
+      <input id="log-student" type="text" readonly>
+      <input id="log-pass" type="password" placeholder="รหัสผ่าน" required>
+      <button type="submit">เข้าสู่ระบบ</button>
+    </form>
+
+    <div id="message"></div>
+  </div>
+
+  <div id="welcome" style="display:none;"></div>
+</div>
+
+<script>
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxEne0KIsTKhm_so5VObF5f882yAhx_CPIXKDgj8HEA9eXjpwUnUoJjjGcQk3xu4XiH/exec';
+
+function showMessage(msg,type='error'){
+  document.getElementById('message').innerHTML=`<div class="${type}">${msg}</div>`;
+}
+function clearMessage(){document.getElementById('message').innerHTML='';}
+
+// ตรวจสอบรหัส
+document.getElementById('form-check').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const sid = document.getElementById('check-student').value.trim();
+  if(!sid) return alert('กรุณากรอกรหัส');
+  try{
+    const res = await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify({action:'checkRegister',studentId:sid})});
+    const data = await res.json();
+    document.getElementById('form-check').style.display='none';
+    document.getElementById('content').style.display='';
+    document.getElementById('reg-student').value = sid;
+    document.getElementById('log-student').value = sid;
+    if(data.registered) document.getElementById('tab-login').click();
+    else document.getElementById('tab-register').click();
+  }catch(err){alert('เกิดข้อผิดพลาด: '+err);}
+});
+
+// ลงทะเบียน
+document.getElementById('form-register').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const sid = document.getElementById('reg-student').value;
+  const pass = document.getElementById('reg-pass').value;
+  try{
+    const res = await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify({action:'register',studentId:sid,pass:pass})});
+    const data = await res.json();
+    showMessage(data.message,data.success?'ok':'error');
+    if(data.success) document.getElementById('tab-login').click();
+  }catch(err){showMessage('เกิดข้อผิดพลาด: '+err);}
+});
+
+// ล็อกอิน
+document.getElementById('form-login').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const sid = document.getElementById('log-student').value;
+  const pass = document.getElementById('log-pass').value;
+  try{
+    const res = await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify({action:'login',studentId:sid,pass:pass})});
+    const data = await res.json();
+    if(data.success && data.isAdmin){
+      document.getElementById('content').style.display='none';
+      const w = document.getElementById('welcome');
+      w.style.display='';
+      w.innerHTML=`สวัสดี ${data.adminName} | จำนวนครั้งเข้าใช้งาน: ${data.adminCount} <br>
+                   <a href="${data.link}" target="_blank">ไปหน้า Admin</a>`;
+    }else showMessage(data.message);
+  }catch(err){showMessage('เกิดข้อผิดพลาด: '+err);}
+});
+</script>
+</body>
+</html>
